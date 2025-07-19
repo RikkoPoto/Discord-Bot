@@ -1,0 +1,35 @@
+import discord
+import requests
+from discord.ext import tasks
+
+TOKEN = 'MTM5NTkxODcwNjg2NDgxNjEzOA.GhqgbI.uVjJuGU_4e1XWQQdJ1975FhKCZqTuKcXNQN684'
+CHANNEL_ID = 1395541037237407744
+SPARK_URL = 'http://tu_ip:4567/spark/players'
+
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
+
+@tasks.loop(seconds=30)
+async def estado_minecraft():
+    canal = client.get_channel(CHANNEL_ID)
+    try:
+        resp = requests.get(SPARK_URL, timeout=5)
+        data = resp.json()
+        jugadores = data.get("players", [])
+        mensaje = f"🟢 Servidor activo - {len(jugadores)} jugadores conectados:\n"
+        if jugadores:
+            mensaje += "\n".join([f"• {p['name']}" for p in jugadores])
+        else:
+            mensaje += "Nadie conectado"
+    except Exception:
+        mensaje = "🔴 No se pudo conectar a Spark (¿server caído?)"
+    
+    if canal:
+        await canal.send(mensaje)
+
+@client.event
+async def on_ready():
+    print(f"Bot conectado como {client.user}")
+    estado_minecraft.start()
+
+client.run(TOKEN)
